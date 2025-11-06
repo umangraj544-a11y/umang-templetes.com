@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Umang Templates - Shop</title>
+<style>
+  /* ---------- Basic layout & theme ---------- */
+  :root{
+    --accent:#0b6efd; --accent-dark:#0849c6; --bg:#f3f6fb;
+    --muted:#6b7280; --card:#fff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:#111}
+  header{background:var(--accent);color:#fff;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .brand{font-weight:700;font-size:20px}
+  nav a{color:#fff;text-decoration:none;margin-left:12px;font-weight:600}
+  .container{max-width:1100px;margin:22px auto;padding:16px}
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .searchbar{display:flex;gap:8px;width:100%;max-width:640px}
+  input[type="text"],input[type="number"],textarea,select{padding:10px;border-radius:8px;border:1px solid #e6e9ef;font-size:14px}
+  button{background:var(--accent);color:#fff;border:none;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+  button.secondary{background:transparent;color:var(--accent);border:1px solid rgba(11,110,253,0.12)}
+  .grid{display:flex;flex-wrap:wrap;gap:16px}
+  .card{background:var(--card);width:calc(33.333% - 10.66px);border-radius:10px;overflow:hidden;box-shadow:0 6px 20px rgba(11,30,80,0.06)}
+  .card img{width:100%;height:180px;object-fit:cover}
+  .card-body{padding:12px}
+  .muted{color:var(--muted);font-size:13px}
+  .small{font-size:13px;color:var(--muted)}
+  .right{margin-left:auto}
+  @media(max-width:900px){.card{width:calc(50% - 12px)}}
+  @media(max-width:600px){.card{width:100%} header{flex-direction:column;align-items:flex-start}}
+
+  /* pages */
+  main > section{display:none}
+  main > section.active{display:block}
+
+  /* modals */
+  .modal{position:fixed;inset:0;background:rgba(2,6,23,0.5);display:none;align-items:center;justify-content:center;z-index:60}
+  .modal .panel{background:#fff;padding:18px;border-radius:10px;width:96%;max-width:540px}
+  .modal.show{display:flex}
+
+  /* loader */
+  .loader-wrap{position:fixed;inset:0;background:linear-gradient(180deg,#0b6efd11,transparent);display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:120}
+  .spinner{width:84px;height:84px;border-radius:50%;border:9px solid rgba(11,110,253,0.12);border-top-color:var(--accent);animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-text{margin-top:12px;color:var(--muted)}
+
+  /* cart table */
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px;border-bottom:1px solid #eee;text-align:left}
+  .badge{background:#ef4444;color:#fff;padding:4px 8px;border-radius:20px;font-weight:700}
+
+  /* admin */
+  .admin-grid{display:flex;gap:16px;flex-wrap:wrap}
+  .admin-col{flex:1;min-width:260px;background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(11,30,80,0.04)}
+
+  /* stars */
+  .stars{display:inline-block}
+  .star{color:#eab308;font-size:18px;cursor:pointer;margin-right:3px}
+  .star.gray{color:#d1d5db}
+
+  footer{max-width:1100px;margin:24px auto;text-align:center;color:var(--muted);padding:8px}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loader" class="loader-wrap" aria-hidden="false">
+  <div class="spinner" role="img" aria-label="loading"></div>
+  <div class="loading-text">Loading Umang Templates...</div>
+</div>
+
+<header>
+  <div class="brand">🛍️ Umang Templates</div>
+  <nav>
+    <a href="#home" id="nav-home">Home</a>
+    <a href="#offers" id="nav-offers">Offers</a>
+    <a href="#cart" id="nav-cart">Cart <span id="cart-badge" class="badge" style="display:none">0</span></a>
+    <a href="#admin" id="nav-admin">Admin</a>
+    <a href="#account" id="nav-account">Account</a>
+  </nav>
+</header>
+
+<main class="container">
+  <div class="topbar">
+    <div style="flex:1">
+      <div style="font-weight:700">Welcome to Umang Templates</div>
+      <div class="small">Buy items, add reviews, manage store (admin)</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="searchInput" type="text" placeholder="Search products..." style="min-width:220px;padding:8px;border-radius:8px;border:1px solid #e6e9ef">
+      <button id="searchBtn">Search</button>
+      <button id="clearSearch" class="secondary">Clear</button>
+    </div>
+  </div>
+
+  <!-- Home / Products -->
+  <section id="page-home" class="active" aria-label="home">
+    <div id="offers-bar" style="display:none;margin-bottom:12px;background:#fff3cd;padding:10px;border-radius:8px;color:#533f03"></div>
+    <div id="productsGrid" class="grid" role="list"></div>
+  </section>
+
+  <!-- Offers -->
+  <section id="page-offers">
+    <h2>Current Offers</h2>
+    <div id="offersList" class="muted"></div>
+  </section>
+
+  <!-- Cart -->
+  <section id="page-cart">
+    <h2>Your Cart</h2>
+    <div id="cartArea"></div>
+  </section>
+
+  <!-- Product detail -->
+  <section id="page-product">
+    <div id="productDetail"></div>
+  </section>
+
+  <!-- Account: login/register -->
+  <section id="page-account">
+    <h2>Account</h2>
+    <div id="accountArea"></div>
+  </section>
+
+  <!-- Admin -->
+  <section id="page-admin">
+    <h2>Admin Login</h2>
+    <div id="adminArea"></div>
+  </section>
+</main>
+
+<footer>© 2025 Umang Templates — Built with ❤️</footer>
+
+<!-- Modal for image preview -->
+<div id="modal" class="modal" aria-hidden="true">
+  <div class="panel" id="modalPanel"></div>
+</div>
+
+<script>
+/* ---------------------------
+   Single-file frontend-only shop
+   Data persistence: localStorage
+   Keys:
+     - umang_products : array of products
+     - umang_users    : array of users {username,passwordHash(not secure but stored)}
+     - umang_current  : string username
+     - umang_reviews  : object { productSlug: [ {username,rating,comment,ts}, ... ] }
+     - umang_carts    : object { username: [ {productSlug, qty}, ... ] }
+     - umang_offers   : array of offers {title,details}
+   Product model:
+     { name, slug, description, price, imageBase64 (string|null), createdAt }
+----------------------------*/
+
+const APP = (function(){
+  /* config */
+  const ADMIN_PASSWORD = "admin123"; // change if you want
+  const WHATSAPP_NUMBER = "8603729744"; // your number (local); will open https://wa.me/8603729744
+  const KEYS = {
+    PRODUCTS: 'umang_products',
+    USERS: 'umang_users',
+    CURRENT: 'umang_current',
+    REVIEWS: 'umang_reviews',
+    CARTS: 'umang_carts',
+    OFFERS: 'umang_offers'
+  };
+
+  /* utility */
+  const $ = sel => document.querySelector(sel);
+  const create = (tag,props={}) => Object.assign(document.createElement(tag), props);
+  const nowISO = ()=> new Date().toISOString();
+  const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+
+  /* local storage helpers */
+  function read(key, fallback){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch(e){ return fallback; } }
+  function write(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+  /* init default products (if none) */
+  function ensureSeed(){
+    let products = read(KEYS.PRODUCTS, null);
+    if(!products){
+      products = [
+        { name:"Red T-Shirt", slug:"red-tshirt", description:"Comfortable cotton tee", price:499.00, image:null, createdAt: nowISO() },
+        { name:"Blue Sneakers", slug:"blue-sneakers", description:"Stylish everyday sneakers", price:1999.00, image:null, createdAt: nowISO() },
+        { name:"Wireless Earbuds", slug:"wireless-earbuds", description:"Small & powerful earbuds", price:1299.00, image:null, createdAt: nowISO() },
+        { name:"Classic Watch", slug:"classic-watch", description:"Elegant wrist watch", price:2499.00, image:null, createdAt: nowISO() },
+        { name:"Sunglasses", slug:"sunglasses", description:"UV protected sunglasses", price:799.00, image:null, createdAt: nowISO() }
+      ];
+      write(KEYS.PRODUCTS, products);
+    }
+    if(!read(KEYS.USERS,[])){ write(KEYS.USERS, []); }
+    if(!read(KEYS.REVIEWS, {})){ write(KEYS.REVIEWS, {}); }
+    if(!read(KEYS.CARTS, {})){ write(KEYS.CARTS, {}); }
+    if(!read(KEYS.OFFERS, [])){ write(KEYS.OFFERS, [{title:"Welcome Offer", details:"Flat ₹100 off on first order!"}]); }
+  }
+
+  /* auth */
+  function getCurrentUser(){ return localStorage.getItem(KEYS.CURRENT); }
+  function requireLogin(redirectHash){
+    if(!getCurrentUser()){
+      alert("Please register/login first.");
+      location.hash = "#account";
+      return false;
+    }
+    return true;
+  }
+
+  /* product CRUD */
+  function getProducts(){ return read(KEYS.PRODUCTS, []); }
+  function saveProducts(arr){ write(KEYS.PRODUCTS, arr); }
+  function addProduct({name, description, price, imageBase64}){
+    const products = getProducts();
+    const slug = slugify(name) || 'p-'+Date.now();
+    let uniqueSlug = slug;
+    let c = 1;
+    while(products.find(p=>p.slug===uniqueSlug)){ uniqueSlug = slug + '-' + c; c++; }
+    products.unshift({ name, slug:uniqueSlug, description, price: parseFloat(price)||0, image: imageBase64||null, createdAt: nowISO() });
+    saveProducts(products);
+    return uniqueSlug;
+  }
+  function removeProduct(slug){
+    const products = getProducts().filter(p=>p.slug!==slug);
+    saveProducts(products);
+    // remove reviews for product
+    const rev = read(KEYS.REVIEWS, {});
+    if(rev[slug]){ delete rev[slug]; write(KEYS.REVIEWS, rev); }
+    // remove from carts
+    const carts = read(KEYS.CARTS, {});
+    for(const u in carts){
+      carts[u] = carts[u].filter(ci => ci.productSlug !== slug);
+    }
+    write(KEYS.CARTS, carts);
+  }
+
+  /* reviews */
+  function getReviews(){ return read(KEYS.REVIEWS, {}); }
+  function addReview(productSlug, username, rating, comment){
+    const rev = getReviews();
+    rev[productSlug] = rev[productSlug] || [];
+    rev[productSlug].unshift({ username, rating: parseInt(rating)||0, comment: comment||'', ts: nowISO() });
+    write(KEYS.REVIEWS, rev);
+  }
+
+  /* cart */
+  function getCarts(){ return read(KEYS.CARTS, {}); }
+  function saveCarts(carts){ write(KEYS.CARTS, carts); }
+  function getCartForUser(username){
+    const carts = getCarts(); return carts[username] || [];
+  }
+  function saveCartForUser(username, cartArr){
+    const carts = getCarts(); carts[username] = cartArr; saveCarts(carts);
+  }
+  function addToCart(username, productSlug){
+    const cart = getCartForUser(username);
+    const found = cart.find(ci=>ci.productSlug===productSlug);
+    if(found) found.qty++;
+    else cart.push({ productSlug, qty:1 });
+    saveCartForUser(username, cart);
+  }
+  function removeFromCart(username, productSlug){
+    let cart = getCartForUser(username);
+    cart = cart.filter(ci=>ci.productSlug!==productSlug);
+    saveCartForUser(username, cart);
+  }
+
+  /* offers */
+  function getOffers(){ return read(KEYS.OFFERS, []); }
+  function saveOffers(arr){ write(KEYS.OFFERS, arr); }
+  function addOffer(title, details){
+    const offers = getOffers();
+    offers.unshift({title, details, createdAt: nowISO()});
+    saveOffers(offers);
+  }
+
+  /* users (very simple local) */
+  function getUsers(){ return read(KEYS.USERS, []); }
+  function addUser(username, password){
+    const users = getUsers();
+    if(users.find(u=>u.username===username)) return false;
+    users.push({ username, password }); // password stored plain here: for local demo only
+    write(KEYS.USERS, users);
+    return true;
+  }
+  function checkUser(username, password){
+    const users = getUsers();
+    return users.find(u=>u.username===username && u.password===password);
+  }
+
+  /* UI rendering */
+  const productsGrid = $('#productsGrid');
+  function renderProducts(filterQuery){
+    productsGrid.innerHTML = '';
+    const products = getProducts();
+    let list = products.slice();
+    if(filterQuery){
+      const q = filterQuery.toLowerCase();
+      list = list.filter(p=> (p.name||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q) );
+    }
+    if(list.length===0){
+      productsGrid.innerHTML = '<div style="padding:16px;background:#fff;border-radius:8px">No products found.</div>';
+      return;
+    }
+    list.forEach(p=>{
+      const card = createCard(p);
+      productsGrid.appendChild(card);
+    });
+  }
+
+  function createCard(p){
+    const card = create('div'); card.className='card';
+    const img = create('img'); img.alt = p.name;
+    img.src = p.image || `https://via.placeholder.com/800x600?text=${encodeURIComponent(p.name)}`;
+    const body = create('div'); body.className='card-body';
+    const title = create('div'); title.innerHTML = `<strong>${p.name}</strong>`;
+    const desc = create('div'); desc.className='muted'; desc.style.marginTop='6px'; desc.textContent = p.description||'';
+    const price = create('div'); price.style.marginTop='10px'; price.innerHTML = `<strong>₹ ${parseFloat(p.price).toFixed(2)}</strong>`;
+    const btns = create('div'); btns.style.marginTop='10px'; btns.style.display='flex'; btns.style.gap='8px';
+    const view = create('button'); view.textContent='View'; view.onclick = ()=>{ location.hash = '#product:'+p.slug; };
+    const add = create('button'); add.textContent='Add to Cart'; add.onclick = ()=>{
+      const user = localStorage.getItem(KEYS.CURRENT);
+      if(!user){ alert('Please register / login first.'); location.hash='#account'; return; }
+      addToCart(user, p.slug); updateCartBadge(); alert('Added to cart'); };
+    const buy = create('button'); buy.textContent='Buy (WhatsApp)'; buy.style.background='#25D366'; buy.onclick = ()=> openWhatsApp(p);
+    btns.appendChild(view); btns.appendChild(add); btns.appendChild(buy);
+    body.append(title); body.append(desc); body.append(price); body.append(btns);
+    card.appendChild(img); card.appendChild(body);
+    return card;
+  }
+
+  function updateOffersBar(){
+    const offers = getOffers();
+    if(offers && offers.length>0){
+      $('#offers-bar').style.display='block';
+      $('#offers-bar').textContent = offers[0].title + ' — ' + offers[0].details;
+      // populate offers page list
+      const ol = $('#offersList'); ol.innerHTML = '';
+      offers.forEach(o=>{
+        const dv = document.createElement('div');
+        dv.style.background='#fff'; dv.style.padding='10px'; dv.style.borderRadius='8px'; dv.style.marginBottom='10px';
+        dv.innerHTML = `<strong>${o.title}</strong><div class="muted">${o.details}</div>`;
+        ol.appendChild(dv);
+      });
+    } else {
+      $('#offers-bar').style.display='none';
+      $('#offersList').innerHTML = '<div class="muted">No offers right now.</div>';
+    }
+  }
+
+  /* product detail view */
+  function renderProductDetail(slug){
+    const products = getProducts();
+    const p = products.find(x=>x.slug===slug);
+    const area = $('#productDetail'); area.innerHTML = '';
+    if(!p){ area.innerHTML = '<div class="muted">Product not found.</div>'; return; }
+    const container = document.createElement('div'); container.style.display='flex'; container.style.gap='16px'; container.style.flexWrap='wrap';
+    const left = create('div'); left.style.flex='1'; left.style.minWidth='260px';
+    const img = create('img'); img.src = p.image || `https://via.placeholder.com/800x600?text=${encodeURIComponent(p.name)}`; img.style.width='100%'; img.style.borderRadius='8px';
+    left.appendChild(img);
+    const right = create('div'); right.style.flex='1'; right.style.minWidth='260px';
+    right.innerHTML = `<h2>${p.name}</h2><div class="small">${p.description}</div><h3 style="margin-top:10px">₹ ${parseFloat(p.price).toFixed(2)}</h3>`;
+    const actions = create('div'); actions.style.marginTop='10px'; actions.style.display='flex'; actions.style.gap='8px';
+    const addBtn = create('button'); addBtn.textContent='Add to Cart'; addBtn.onclick = ()=>{
+      const user = localStorage.getItem(KEYS.CURRENT);
+      if(!user){ alert('Please register / login first.'); location.hash = '#account'; return; }
+      addToCart(user, p.slug); updateCartBadge(); alert('Added to cart'); };
+    const buyBtn = create('button'); buyBtn.textContent='Buy (WhatsApp)'; buyBtn.style.background='#25D366'; buyBtn.onclick = ()=> openWhatsApp(p);
+    actions.appendChild(addBtn); actions.appendChild(buyBtn);
+    right.appendChild(actions);
+
+    // reviews area
+    const revTitle = create('h3'); revTitle.textContent='Reviews';
+    const revForm = create('div');
+    revForm.innerHTML = `
+      <div style="margin-top:8px">
+        <input id="rev-name" type="text" placeholder="Your name" style="padding:8px;border-radius:6px;border:1px solid #e6e9ef;max-width:260px">
+        <div style="margin-top:8px">Rating:
+          <span id="rev-stars" class="stars"></span>
+        </div>
+        <textarea id="rev-comment" rows="3" placeholder="Write a review..." style="margin-top:8px;padding:8px;border-radius:6px;border:1px solid #e6e9ef;width:100%"></textarea>
+        <div style="margin-top:8px"><button id="rev-submit">Submit Review</button></div>
+      </div>
+    `;
+    right.appendChild(revTitle); right.appendChild(revForm);
+
+    // show existing reviews
+    const revList = create('div'); revList.style.marginTop='12px';
+    function populateReviews(){
+      revList.innerHTML = '';
+      const revs = getReviews()[p.slug] || [];
+      if(revs.length===0) revList.innerHTML = '<div class="small">No reviews yet — be the first!</div>';
+      else {
+        revs.forEach(r=>{
+          const wrap = create('div'); wrap.style.background='#fff'; wrap.style.padding='10px'; wrap.style.borderRadius='8px'; wrap.style.marginBottom='8px';
+          wrap.innerHTML = `<div><strong>${escapeHtml(r.username)}</strong> <span class="small">${new Date(r.ts).toLocaleString()}</span></div>
+                            <div class="small">Rating: ${'★'.repeat(r.rating)} (${r.rating}/5)</div>
+                            <div style="margin-top:6px">${escapeHtml(r.comment)}</div>`;
+          revList.appendChild(wrap);
+        });
+      }
+    }
+    right.appendChild(revList);
+
+    container.appendChild(left); container.appendChild(right);
+    area.appendChild(create('a',{href:'#home',textContent:'← Back to shop'}));
+    area.appendChild(container);
+
+    // stars widget
+    const starsEl = $('#rev-stars');
+    let selectedRating = 5;
+    function renderStars(){
+      starsEl.innerHTML = '';
+      for(let i=1;i<=5;i++){
+        const sp = create('span'); sp.className = 'star' + (i<=selectedRating?'':' gray'); sp.textContent='★';
+        sp.onclick = ()=>{ selectedRating = i; renderStars(); };
+        starsEl.appendChild(sp);
+      }
+    }
+    renderStars();
+    $('#rev-submit').onclick = ()=>{
+      const name = $('#rev-name').value.trim();
+      const comment = $('#rev-comment').value.trim();
+      if(!name){ alert('Enter your name'); return; }
+      addReview(p.slug, name, selectedRating, comment);
+      $('#rev-name').value=''; $('#rev-comment').value='';
+      populateReviews();
+      alert('Thanks for your review!');
+    };
+    populateReviews();
+  }
+
+  /* cart page rendering */
+  function renderCart(){
+    const user = getCurrentUser();
+    if(!user){ $('#cartArea').innerHTML = '<div class="small">Please register or login to view cart.</div>'; return; }
+    const cart = getCartForUser(user);
+    if(!cart || cart.length===0){
+      $('#cartArea').innerHTML = '<div class="small">Your cart is empty.</div>'; return;
+    }
+    const products = getProducts();
+    let html = `<table><thead><tr><th>Product</th><th>Qty</th><th>Subtotal</th><th></th></tr></thead><tbody>`;
+    let total = 0;
+    cart.forEach(ci=>{
+      const p = products.find(pp=>pp.slug===ci.productSlug);
+      if(!p) return;
+      const subtotal = p.price * ci.qty;
+      total += subtotal;
+      html += `<tr><td>${escapeHtml(p.name)}</td><td>${ci.qty}</td><td>₹ ${parseFloat(subtotal).toFixed(2)}</td>
+                 <td><button data-remove="${p.slug}" style="background:#dc3545">Remove</button></td></tr>`;
+    });
+    html += `</tbody></table><h3>Total: ₹ ${parseFloat(total).toFixed(2)}</h3>
+             <div style="margin-top:10px"><button id="checkoutBtn">Checkout</button></div>`;
+    $('#cartArea').innerHTML = html;
+    // attach remove handlers
+    document.querySelectorAll('[data-remove]').forEach(btn=>{
+      btn.onclick = ()=>{ const slug = btn.getAttribute('data-remove'); removeFromCart(user, slug); renderCart(); updateCartBadge(); };
+    });
+    $('#checkoutBtn').onclick = ()=>{
+      if(confirm('Place order (demo)?')){ saveCartForUser(user, []); alert('Order placed (demo). Admin will contact you.'); renderCart(); updateCartBadge(); location.hash='#home'; }
+    };
+  }
+
+  /* account area */
+  function renderAccount(){
+    const area = $('#accountArea'); area.innerHTML = '';
+    const user = getCurrentUser();
+    if(user){
+      area.innerHTML = `<div style="background:#fff;padding:12px;border-radius:8px"><div><strong>Logged in as ${escapeHtml(user)}</strong></div>
+                        <div style="margin-top:8px"><button id="logoutBtn" style="background:#6b7280">Logout</button></div></div>`;
+      $('#logoutBtn').onclick = ()=>{ localStorage.removeItem(KEYS.CURRENT); alert('Logged out'); renderAccount(); updateCartBadge(); location.hash='#home'; };
+    } else {
+      area.innerHTML = `<div style="background:#fff;padding:12px;border-radius:8px">
+        <h3>Register</h3>
+        <input id="reg-username" placeholder="Username" type="text" style="max-width:260px"><br><br>
+        <input id="reg-password" placeholder="Password" type="password" style="max-width:260px"><br><br>
+        <button id="regBtn">Create account</button>
+        <hr style="margin:12px 0">
+        <h3>Login</h3>
+        <input id="login-username" placeholder="Username" type="text" style="max-width:260px"><br><br>
+        <input id="login-password" placeholder="Password" type="password" style="max-width:260px"><br><br>
+        <button id="loginBtn" class="secondary">Login</button>
+      </div>`;
+      $('#regBtn').onclick = ()=>{
+        const u = $('#reg-username').value.trim(); const p = $('#reg-password').value.trim();
+        if(!u||!p){ alert('Enter both username & password'); return; }
+        const ok = addUser(u,p);
+        if(!ok){ alert('Username taken'); return; }
+        localStorage.setItem(KEYS.CURRENT, u); alert('Account created & logged in'); renderAccount(); updateCartBadge(); location.hash='#home';
+      };
+      $('#loginBtn').onclick = ()=>{
+        const u = $('#login-username').value.trim(); const p = $('#login-password').value.trim();
+        if(!u||!p){ alert('Enter credentials'); return; }
+        if(checkUser(u,p)){ localStorage.setItem(KEYS.CURRENT,u); alert('Logged in'); renderAccount(); updateCartBadge(); location.hash='#home'; }
+        else alert('Invalid credentials');
+      };
+    }
+  }
+
+  /* admin area */
+  function renderAdmin(){
+    const area = $('#adminArea'); area.innerHTML = '';
+    if(!sessionAdminLogged()){
+      // show admin login form
+      area.innerHTML = `<div style="background:#fff;padding:12px;border-radius:8px"><input id="adminPass" placeholder="Admin password" type="password" style="max-width:260px">
+      <button id="adminLoginBtn">Login as Admin</button></div>`;
+      $('#adminLoginBtn').onclick = ()=>{ const p = $('#adminPass').value; if(p===ADMIN_PASSWORD){ setAdminLogged(true); renderAdmin(); } else alert('Wrong admin password'); };
+      return;
+    }
+    // admin dashboard
+    area.innerHTML = `<div class="admin-grid">
+      <div class="admin-col">
+        <h3>Add Product</h3>
+        <input id="ap-name" placeholder="Name"><br><br>
+        <input id="ap-price" placeholder="Price" type="number"><br><br>
+        <textarea id="ap-desc" placeholder="Description" rows="3"></textarea><br><br>
+        <input id="ap-image" type="file" accept="image/*"><br><br>
+        <button id="ap-add">Add Product</button>
+      </div>
+      <div class="admin-col">
+        <h3>Remove Products</h3>
+        <div id="adminProductsList" style="max-height:280px;overflow:auto"></div>
+      </div>
+      <div class="admin-col">
+        <h3>Offers</h3>
+        <input id="offer-title" placeholder="Offer title"><br><br>
+        <textarea id="offer-details" placeholder="Offer details" rows="3"></textarea><br><br>
+        <button id="addOfferBtn">Add Offer</button>
+        <h4 style="margin-top:12px">Existing Offers</h4>
+        <div id="offersAdminList" style="max-height:200px;overflow:auto"></div>
+        <div style="margin-top:12px"><button id="adminLogoutBtn" style="background:#6b7280">Logout Admin</button></div>
+      </div>
+    </div>`;
+    // populate remove products
+    const plist = $('#adminProductsList'); plist.innerHTML = '';
+    getProducts().forEach(p=>{
+      const dv = document.createElement('div'); dv.style.padding='8px'; dv.style.borderBottom='1px solid #eee';
+      dv.innerHTML = `<strong>${p.name}</strong> <div class="muted">₹ ${parseFloat(p.price).toFixed(2)}</div>
+                      <div style="margin-top:6px"><button data-del="${p.slug}" style="background:#dc3545">Delete</button></div>`;
+      plist.appendChild(dv);
+    });
+    // offers admin list
+    const offList = $('#offersAdminList'); offList.innerHTML=''; getOffers().forEach((o,idx)=>{
+      const d = document.createElement('div'); d.style.padding='8px'; d.style.borderBottom='1px solid #eee';
+      d.innerHTML = `<strong>${o.title}</strong><div class="muted">${o.details}</div><div style="margin-top:6px"><button data-offdel="${idx}" style="background:#dc3545">Delete</button></div>`;
+      offList.appendChild(d);
+    });
+
+    // handlers
+    $('#ap-add').onclick = async ()=>{
+      const name = $('#ap-name').value.trim(); const price = $('#ap-price').value; const desc = $('#ap-desc').value.trim();
+      if(!name || !price){ alert('Name & price required'); return; }
+      const file = $('#ap-image').files[0];
+      let base64 = null;
+      if(file){
+        base64 = await fileToBase64(file);
+      }
+      addProduct({name, price, description: desc, imageBase64: base64});
+      alert('Product added'); renderAdmin(); refreshAll();
+    };
+    document.querySelectorAll('[data-del]').forEach(btn=> btn.onclick = ()=>{
+      if(!confirm('Delete product?')) return;
+      const slug = btn.getAttribute('data-del'); removeProduct(slug); alert('Deleted'); renderAdmin(); refreshAll();
+    });
+    $('#addOfferBtn').onclick = ()=>{ const t = $('#offer-title').value.trim(), d = $('#offer-details').value.trim(); if(!t||!d){ alert('fill title & details'); return; } addOffer(t,d); alert('Offer added'); renderAdmin(); updateOffersBar(); };
+    document.querySelectorAll('[data-offdel]').forEach(b=> b.onclick = ()=>{ const idx = parseInt(b.getAttribute('data-offdel')); const offs = getOffers(); offs.splice(idx,1); saveOffers(offs); renderAdmin(); updateOffersBar(); });
+    $('#adminLogoutBtn').onclick = ()=>{ setAdminLogged(false); renderAdmin(); };
+  }
+
+  /* admin session (client-side only) */
+  function sessionAdminLogged(){ return sessionStorage.getItem('umang_admin') === '1'; }
+  function setAdminLogged(val){ if(val) sessionStorage.setItem('umang_admin','1'); else sessionStorage.removeItem('umang_admin'); }
+
+  /* whatsapp open */
+  function openWhatsApp(p){
+    const productUrl = location.origin + location.pathname + '#product:' + p.slug;
+    const imageUrl = p.image || '';
+    const lines = [
+      `Hello, I want to buy this product from Umang Templates:`,
+      `Product: ${p.name}`,
+      `Price: ₹${parseFloat(p.price).toFixed(2)}`,
+      `Link: ${productUrl}`
+    ];
+    if(imageUrl) lines.push(`Image: ${imageUrl}`);
+    const text = encodeURIComponent(lines.join('\n'));
+    const wa = `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`;
+    window.open(wa, '_blank');
+  }
+
+  /* helpers */
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+  function fileToBase64(file){ return new Promise((res,rej)=>{ const fr = new FileReader(); fr.onload = ()=>res(fr.result); fr.onerror = rej; fr.readAsDataURL(file); }); }
+
+  /* router */
+  function route(){
+    const hash = location.hash || '#home';
+    // pattern: #product:slug
+    if(hash.startsWith('#product:')){
+      const slug = hash.split(':')[1];
+      activate('product'); renderProductDetail(slug);
+    } else if(hash.startsWith('#cart')){ activate('cart'); renderCart(); }
+    else if(hash.startsWith('#offers')){ activate('offers'); updateOffersBar(); }
+    else if(hash.startsWith('#admin')){ activate('admin'); renderAdmin(); }
+    else if(hash.startsWith('#account')){ activate('account'); renderAccount(); }
+    else { activate('home'); renderProducts($('#searchInput').value.trim()); updateOffersBar(); }
+  }
+
+  function activate(page){
+    document.querySelectorAll('main > section').forEach(s=> s.classList.remove('active'));
+    if(page==='home') $('#page-home').classList.add('active');
+    else if(page==='offers') $('#page-offers').classList.add('active');
+    else if(page==='cart') $('#page-cart').classList.add('active');
+    else if(page==='product') $('#page-product').classList.add('active');
+    else if(page==='admin') $('#page-admin').classList.add('active');
+    else if(page==='account') $('#page-account').classList.add('active');
+  }
+
+  /* cart badge */
+  function updateCartBadge(){
+    const user = getCurrentUser();
+    if(!user){ $('#cart-badge').style.display='none'; return; }
+    const cart = getCartForUser(user);
+    const totalItems = cart.reduce((s,ci)=>s+ci.qty,0);
+    const badge = $('#cart-badge'); badge.textContent = totalItems; badge.style.display = totalItems? 'inline-block':'none';
+  }
+
+  /* refresh UI */
+  function refreshAll(){
+    renderProducts($('#searchInput').value.trim());
+    updateOffersBar();
+    renderAccount();
+    updateCartBadge();
+  }
+
+  /* init function */
+  function init(){
+    ensureSeed();
+    // hide loader after small delay
+    setTimeout(()=>{ document.getElementById('loader').style.display='none'; }, 800);
+
+    // wire up navigation
+    window.addEventListener('hashchange', route);
+    $('#searchBtn').onclick = ()=>{ renderProducts($('#searchInput').value.trim()); location.hash = '#home'; };
+    $('#clearSearch').onclick = ()=>{ $('#searchInput').value=''; renderProducts(''); };
+    // initial render
+    refreshAll();
+    route();
+    // nav links to proper hash
+    $('#nav-home').onclick = ()=> location.hash='#home';
+    $('#nav-offers').onclick = ()=> location.hash='#offers';
+    $('#nav-cart').onclick = ()=> location.hash='#cart';
+    $('#nav-admin').onclick = ()=> location.hash='#admin';
+    $('#nav-account').onclick = ()=> location.hash='#account';
+    // click on offers bar opens offers page
+    $('#offers-bar').onclick = ()=> location.hash='#offers';
+  }
+
+  /* public helpers used in some templates */
+  function getCurrentUser(){ return localStorage.getItem(KEYS.CURRENT); }
+
+  /* expose needed functions */
+  return {
+    init,
+    addProduct, removeProduct, addReview, addOffer,
+    getProducts, getOffers, getReviews,
+    getCartForUser,
+    updateCartBadge
+  };
+})();
+
+/* init app */
+APP.init();
+
+/* helper mapping */
+function getProducts(){ return JSON.parse(localStorage.getItem('umang_products')||'[]'); }
+function getOffers(){ return JSON.parse(localStorage.getItem('umang_offers')||'[]'); }
+function getReviews(){ return JSON.parse(localStorage.getItem('umang_reviews')||'{}'); }
+function getCartForUser(u){ const cs = JSON.parse(localStorage.getItem('umang_carts')||'{}'); return cs[u] || []; }
+function addToCart(u, slug){ const cs = JSON.parse(localStorage.getItem('umang_carts')||'{}'); cs[u] = cs[u] || []; const found = cs[u].find(x=>x.productSlug===slug); if(found) found.qty++; else cs[u].push({productSlug:slug, qty:1}); localStorage.setItem('umang_carts', JSON.stringify(cs)); }
+function removeFromCart(u, slug){ const cs = JSON.parse(localStorage.getItem('umang_carts')||'{}'); cs[u] = (cs[u]||[]).filter(x=>x.productSlug!==slug); localStorage.setItem('umang_carts', JSON.stringify(cs)); }
+
+/* safe escape for product detail render */
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+</script>
+
+</body>
+</html>
